@@ -6,9 +6,7 @@ LOCATION = "global"
 DATA_STORE_ID = "recipe-data_1764590305776" 
 
 def search_recipe(query_text):
-    """Fungsi untuk menghubungi Vertex AI Search"""
     client = discoveryengine.SearchServiceClient()
-    
     serving_config = client.serving_config_path(
         project=PROJECT_ID,
         location=LOCATION,
@@ -19,39 +17,40 @@ def search_recipe(query_text):
     request = discoveryengine.SearchRequest(
         serving_config=serving_config,
         query=query_text,
-        page_size=5, 
+        page_size=5,
     )
-
     return client.search(request)
 
 st.set_page_config(page_title="Chef Bot AI", page_icon="🍳")
-
 st.title("🍳 Chef Bot - Asisten Resep")
-st.write("Tanya resep apa saja (misal: 'Nasi Goreng', 'Sate'), AI akan mencarinya di BigQuery!")
 
 query = st.text_input("Mau masak apa hari ini?")
 
 if query:
-    with st.spinner(f"Sedang mengaduk data untuk '{query}'..."):
+    with st.spinner(f"Sedang mencari '{query}'..."):
         try:
             response = search_recipe(query)
             
             if not response.results:
-                st.warning("Yah, resep tidak ditemukan di database. Coba menu lain ya!")
+                st.warning("Resep tidak ditemukan.")
             else:
                 st.success(f"Hore! Ditemukan {len(response.results)} resep.")
                 
                 for result in response.results:
-                    data = result.document.derived_struct_data
+                    data = result.document.struct_data
                     
-                    with st.expander(f"🍽️ {data.get('title', 'Tanpa Judul')}", expanded=True):
-                        st.markdown(f"**Bahan-bahan:**\n{data.get('ingredients', '-')}")
-                        st.divider()
-                        st.markdown(f"**Cara Memasak:**\n{data.get('directions', '-')}")
-                        
-        except Exception as e:
-            st.error(f"Ada error teknis: {e}")
-            st.info("Tips: Pastikan API 'Discovery Engine' sudah aktif di Cloud Console.")
+                    data_dict = {}
+                    for key, value in data.items():
+                        data_dict[key] = value
 
-st.markdown("---")
-st.caption("Dibuat dengan Google Vertex AI Search & Cloud Run")
+                    title = data_dict.get('title', 'Tanpa Judul')
+                    ingredients = data_dict.get('ingredients', 'Data bahan tidak terbaca')
+                    directions = data_dict.get('directions', 'Data cara masak tidak terbaca')
+
+                    with st.expander(f"🍽️ {title}", expanded=True):
+                        st.markdown(f"**Bahan-bahan:**\n{ingredients}")
+                        st.divider()
+                        st.markdown(f"**Cara Memasak:**\n{directions}")
+
+        except Exception as e:
+            st.error(f"Error: {e}")
