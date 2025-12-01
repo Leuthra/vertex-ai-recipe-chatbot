@@ -1,0 +1,5 @@
+pandas
+google-cloud-bigquery
+streamlit
+google-cloud-discoveryengine
+db-dtypes
